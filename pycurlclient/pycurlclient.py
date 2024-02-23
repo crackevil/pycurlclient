@@ -4,6 +4,7 @@ import six
 import re
 from six.moves.urllib import response
 addinfourl = response.addinfourl
+from threading import Lock
 
 import io
 
@@ -71,30 +72,43 @@ class pycurlBase(object):
 
 	def __init__(self):
 		self.handle = pycurl.Curl()
+		self.handle_lock = Lock()
 
 	def __del__(self):
 		self.handle.close()
 
-	def setopt(self, opt_mapping):
+	def __setopt__(self, opt_mapping):
 		for key, value in six.iteritems(opt_mapping):
 			self.handle.setopt(key, value)
 
-	def unsetopt(self, opt):
+	def setopt(self, opt_mapping):
+		with self.handle_lock:
+			self.__setopt__(opt_mapping)
+
+	def __unsetopt__(self, opt):
 		for key in opt:
 			try:
 				self.handle.unsetopt(key)
 			except TypeError:
 				continue
 
+	def unsetopt(self, opt):
+		with self.handle_lock:
+			self.__unsetopt__(opt)
+
 	def perform(self, options):
-		self.setopt(options)
-		code = None
-		try:
-			self.handle.perform()
-			code = self.handle.getinfo(pycurl.RESPONSE_CODE)
-		finally:
-			self.handle.reset()
-		return code
+		with self.handle_lock:
+			self.__setopt__(options)
+			code = None
+			try:
+				self.handle.perform()
+				code = self.handle.getinfo(pycurl.RESPONSE_CODE)
+			finally:
+				self.handle.reset()
+			return code
+
+	def is_performing(self):
+		return self.handle_lock.locked()
 
 
 class pycurlResponse(addinfourl):
