@@ -2,18 +2,21 @@
 import pycurl
 import six
 import re
-from six.moves.urllib import response
-addinfourl = response.addinfourl
-from threading import Lock
+from future.standard_library import install_aliases
+install_aliases()
 
+from urllib.response import addinfourl
+
+
+from threading import Lock
+from http_headers import HTTPHeaders
 import io
 
 import certifi
 
 __all__ = ['pycurlResponseHeaders', 'pycurlResponse', 'pycurlClient']
 
-class pycurlResponseHeaders(dict):
-	multiple_value_entry = ['set-cookie', 'set-cookie2']
+class pycurlResponseHeaders(HTTPHeaders):
 
 	def handle_headerline(self, header_line):
 		header_line = header_line.decode('iso-8859-1')
@@ -22,23 +25,7 @@ class pycurlResponseHeaders(dict):
 			name = name.strip()
 			value = value.strip()
 			name = name.lower()
-			if name in self.multiple_value_entry:
-				if name in self:
-					self[name].append(value)
-				else:
-					self[name] = [value]
-			else:
-				self[name] = value
-
-	def getheaders(self, name):
-		name = name.lower()
-		try:
-			return self[name]
-		except KeyError:
-			if name in self.multiple_value_entry:
-				return []
-			else:
-				return None
+			self.add_header(name, value)
 
 	@property
 	def encoding(self):
@@ -121,10 +108,6 @@ class pycurlResponse(addinfourl):
 	@property
 	def status(self):
 		return self.code
-
-	@property
-	def encoding(self):
-		return self.headers.encoding
 
 	@property
 	def text(self):
