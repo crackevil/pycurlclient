@@ -9,7 +9,7 @@ from urllib.response import addinfourl
 
 
 from threading import Lock
-from http_headers import HTTPHeaders
+from http_headers import HTTPHeaders, Message
 import io
 
 import certifi
@@ -175,9 +175,11 @@ class pycurlClient(pycurlBase):
 			opt_mapping[pycurl.SSL_VERIFYPEER] = 0
 		return opt_mapping
 
-	def header_option(self, headers_mapping=None):
-		if headers_mapping:
-			hdr_str = ['{k}: {v}'.format(k=k, v=v) for k, v in six.iteritems(headers_mapping)]
+	def header_option(self, headers_items=None):
+		if headers_items:
+			if isinstance(headers_items, Message):
+				headers_items = headers_items.items()
+			hdr_str = ['{k}: {v}'.format(k=k, v=v) for k, v in headers_items]
 			return {pycurl.HTTPHEADER: hdr_str}
 		else:
 			return {}
