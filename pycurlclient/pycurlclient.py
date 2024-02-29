@@ -39,8 +39,8 @@ class pycurlResponseHeaders(HTTPHeaders):
 	@property
 	def content_length(self):
 		try:
-			return int(self['content-length'])
-		except KeyError:
+			return int(self.get('content-length'))
+		except (KeyError, TypeError):
 			pass
 
 	@property
